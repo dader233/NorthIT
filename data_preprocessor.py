@@ -49,7 +49,7 @@ class DataPreprocessor:
     
     def encode_categorical(self):
         cols = self.df.select_dtypes(include=['object', 'category', 'string']).columns.tolist()
-        self.transform_info['og_cats'] = cols
+        self.transform_info['og_cols'] = cols
         
         if cols:
             dummies = pd.get_dummies(data=self.df[cols])
@@ -86,7 +86,35 @@ class DataPreprocessor:
                     }
         return self
 
+    def fit_transform(self, threshold=0.5, method='minmax'):
+        self.remove_missing(threshold)
+        self.encode_categorical()
+        self.normalize_numeric(method)
+        return self.df
     
+    def get_transform_info(self):
+        return self.transform_info
+    
+    def apply_new_data(self, new_df):
+        res_def = new_df.copy()
+        remove_cols = [col for col in self.transform_info['removed_cols'] if col in res_def.columns]
+        
+        if remove_cols:
+            res_def = res_def.drop(columns=remove_cols)
+            
+        for col, info in self.transform_info['imputation'].items():
+            if col in res_def.columns:
+                res_def[col] = res_def[col].fillna(info['fill_val'])
+
+        for col, params in self.transform_info['normalization'].items():
+            if col in res_def.columns:
+                if params['method'] == 'minmax':
+                    res_def[col] = (res_def[col] - params['min']) / (params['max'] - params['min'])
+                else:
+                    res_def[col] = (res_def[col] - params['mean']) / params['std']
+        return res_def
+
+
                 
 
 
