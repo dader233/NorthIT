@@ -58,7 +58,35 @@ class DataPreprocessor:
             self.df = pd.concat([self.df, dummies],axis=1) 
         
         return self
-    def normalize_numeric(self):
-        pass
+    def normalize_numeric(self, method='minmax'):
+        if method not in ['minmax', 'std']:
+            raise ValueError("Wrong method, must be minmax or std")
+        
+        cols = self.df.select_dtypes(include=['number']).columns.tolist()
+        for col in cols:
+            if method == 'minmax':
+                min_val = self.df[col].min()
+                max_val = self.df[col].max()
+                if max_val > min_val:
+                    self.df[col] = (self.df[col] - min_val) / (max_val - min_val)
+                    self.transform_info['normalization'][col]= {
+                        'method' : 'minmax',
+                        'min' : min_val,
+                        'max' : max_val
+                    }
+            else:
+                mean_val = self.df[col].mean()
+                std_val = self.df[col].std()
+                if std_val > 0:
+                    self.df[col] = (self.df[col] - mean_val) / std_val
+                    self.transform_info['normalization'][col] = {
+                        'method' : 'std',
+                        'mean' : mean_val,
+                        'std' : std_val
+                    }
+        return self
+
+    
+                
 
 
